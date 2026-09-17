@@ -2,48 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
+
 class TransactionController extends Controller
 {
     public function create()
     {
-        $products = collect([
-            (object) [
-                'id' => 1,
-                'name' => 'Kopi Sachet',
-                'price' => 3000,
-                'stock' => 40
-            ],
-            (object) [
-                'id' => 2,
-                'name' => 'Teh Celup',
-                'price' => 2500,
-                'stock' => 25
-            ],
-            (object) [
-                'id' => 3,
-                'name' => 'Mie Instan',
-                'price' => 3500,
-                'stock' => 8
-            ],
-            (object) [
-                'id' => 4,
-                'name' => 'Air Mineral 600ml',
-                'price' => 4000,
-                'stock' => 60
-            ],
-            (object) [
-                'id' => 5,
-                'name' => 'Roti Tawar',
-                'price' => 12000,
-                'stock' => 15
-            ],
-            (object) [
-                'id' => 6,
-                'name' => 'Gula Pasir 1kg',
-                'price' => 15000,
-                'stock' => 5
-            ],
-        ]);
+        $products = Product::take(12)->get();
 
         return view('pos.create', ['products' => $products]);
     }
@@ -55,7 +20,7 @@ class TransactionController extends Controller
 
     public function index()
     {
-        return view ('trasactions.index');
+        return view('trasactions.index');
     }
 
     public function show(string $id)
@@ -63,4 +28,3 @@ class TransactionController extends Controller
         return "Detail transaksi #{$id}";
     }
 }
-?>
