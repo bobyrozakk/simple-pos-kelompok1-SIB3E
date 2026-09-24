@@ -5,12 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany; // 1. Tambahkan use ini di atas
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // satu produk dapat tercata di banyak detail transksi
+    public function details(): HasMany {
+        return $this->hasMany(TransactionDetail::class);
     }
 
     // 2. Tambahkan method transactions dengan relasi belongsToMany
