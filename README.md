@@ -95,3 +95,47 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
        $total += $subtotal;
        ```
 
+---
+
+## Skenario Uji Manual RBAC & Hak Akses (Increment 7)
+
+Berikut adalah skenario pengujian manual untuk setiap peran pada aplikasi Simple POS:
+
+### 1. Tamu / Guest (Belum Login)
+* **Langkah Uji:**
+  1. Akses halaman `/info` di browser saat belum login.
+  2. Coba akses halaman terproteksi seperti `/pos` atau `/products` langsung dari address bar.
+  3. Login terlebih dahulu, kemudian coba akses kembali halaman `/info` atau `/login`.
+* **Hasil yang Diharapkan:**
+  1. Halaman `/info` dapat dibuka dengan normal bagi tamu/pengunjung.
+  2. Akses ke `/pos` atau `/products` tanpa login akan otomatis dialihkan (*redirect*) ke halaman `/login`.
+  3. Pengguna yang sudah login akan otomatis dialihkan ke halaman `/pos` jika mencoba membuka `/info` atau `/login`.
+
+### 2. Peran: Kasir (`kasir@pos.test`)
+* **Langkah Uji:**
+  1. Login dengan kredensial `kasir@pos.test` dan kata sandi `password`.
+  2. Buka halaman `/pos` dan `/transactions`.
+  3. Coba buka halaman kelola produk (`/products`) atau kategori (`/categories`) langsung dari address bar.
+* **Hasil yang Diharapkan:**
+  1. Halaman `/pos` dan `/transactions` tampil dengan normal. Menu Produk dan Kategori disembunyikan dari navigasi atas.
+  2. Saat membuka `/products` atau `/categories`, sistem menolak akses dengan menampilkan halaman **Error 403 Forbidden** ("Anda tidak memiliki akses untuk halaman ini.").
+
+### 3. Peran: Manager (`manager@pos.test`)
+* **Langkah Uji:**
+  1. Login dengan akun berperan `manager`.
+  2. Akses halaman `/transactions` untuk melihat riwayat transaksi.
+  3. Coba akses halaman kelola produk (`/products`).
+* **Hasil yang Diharapkan:**
+  1. Halaman `/transactions` dapat dibuka dan diakses dengan normal.
+  2. Akses ke halaman `/products` ditolak dengan response **Error 403 Forbidden**.
+
+### 4. Peran: Admin (`admin@pos.test`)
+* **Langkah Uji:**
+  1. Login dengan kredensial `admin@pos.test` dan kata sandi `password`.
+  2. Periksa menu navigasi di bagian atas.
+  3. Akses halaman `/products` dan `/categories`.
+* **Hasil yang Diharapkan:**
+  1. Menu navigasi menampilkan secara lengkap menu Kasir, Transaksi, Produk, dan Kategori.
+  2. Semua halaman (`/pos`, `/transactions`, `/products`, `/categories`) dapat dibuka dan dikelola dengan normal tanpa hambatan.
+
+
