@@ -22,14 +22,15 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             return back()->withErrors([
                 'email' => 'Email atau kata sandi salah.',
             ])->onlyInput('email');
         }
 
-        if (!Auth::user()->is_active) {
+        if (! Auth::user()->is_active) {
             Auth::logout();
+
             return back()->withErrors([
                 'email' => 'Akun dinonaktifkan. Hubungi admin.',
             ])->onlyInput('email');
@@ -45,6 +46,7 @@ class LoginController extends Controller
         Auth::logout();
 
         $request->session()->invalidate();
+
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
