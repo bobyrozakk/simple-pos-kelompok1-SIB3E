@@ -18,15 +18,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        $categoryIds = collect([
-            'Makanan',
-            'Minuman',
-            'Snack',
-            'Lainnya'
-        ])
-            ->map(fn (string $name) => Category::create([
-                'name' => $name
-            ])->id)
+        $categoryIds = collect(['Makanan', 'Minuman', 'Snack', 'Lainnya'])
+            ->map(fn (string $name) => Category::create(['name' => $name])->id)
             ->all();
 
         $products = [];
@@ -38,7 +31,6 @@ class DatabaseSeeder extends Seeder
                     'name' => fake()->words(2, true),
                     'price' => fake()->numberBetween(3000, 50000),
                     'stock' => fake()->numberBetween(0, 200),
-                    'is_active' => fake()->boolean(90),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -53,20 +45,14 @@ class DatabaseSeeder extends Seeder
         $productIds = $productPrices->keys()->all();
 
         for ($t = 0; $t < 2500; $t++) {
-            DB::transaction(function () use (
-                $user,
-                $productIds,
-                $productPrices
-            ) {
+            DB::transaction(function () use ($user, $productIds, $productPrices) {
                 $itemCount = fake()->numberBetween(1, 4);
-
                 $total = 0;
                 $details = [];
 
                 for ($i = 0; $i < $itemCount; $i++) {
                     $productId = fake()->randomElement($productIds);
                     $qty = fake()->numberBetween(1, 3);
-
                     $subtotal = $productPrices[$productId] * $qty;
                     $total += $subtotal;
 
