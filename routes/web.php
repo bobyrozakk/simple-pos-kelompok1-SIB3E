@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportController; // <-- 1. TAMBAHKAN IMPORT INI[cite: 3]
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,5 +47,11 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('products', ProductController::class)
             ->except(['show', 'destroy']);
+
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->name('reports.index');
+
+        Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])
+            ->name('reports.export.csv');
     });
 });
