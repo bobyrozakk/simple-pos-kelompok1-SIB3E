@@ -5,6 +5,7 @@
     @if (auth()->user()?->isAdmin())
         <a href="{{ route('products.index') }}" class="hover:underline">Produk</a>
         <a href="{{ route('categories.index') }}" class="hover:underline">Kategori</a>
+        <a href="{{ route('reports.index') }}" class="hover:underline">Laporan</a> {{-- <-- TAMBAHKAN BARIS INI --}}
     @endif
     <span class="ml-auto text-sm">{{ auth()->user()?->name }} ({{ auth()->user()?->role }})</span>
     <form method="POST" action="{{ route('logout') }}">
