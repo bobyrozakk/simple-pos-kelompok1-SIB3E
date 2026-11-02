@@ -2,54 +2,105 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreProductRequest;
-use App\Models\Category;
-use App\Models\Product;
-class ProductController extends Controller
+use App\Exports\SalesReportExport;
+use App\Jobs\ProcessProductImport;
+use App\Models\Transaction;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class ReportController extends Controller
 {
-    public function index()
+    public function index(Request $request): View
     {
-        $products = Product::with('category')
-            ->orderBy('name')
-            ->paginate(10);
+        [$from, $to] = $this->resolveDateRange($request);
+        $query = $this->filteredQuery($from, $to);
 
-        return view('products.index', compact('products'));
+        return view('reports.index', [
+            'totalPenjualan' => $query->sum('total'),
+            'jumlahTransaksi' => $query->count(),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
     }
 
-    public function create()
+    public function exportCsv(Request $request): StreamedResponse
     {
-        $categories = Category::orderBy('name')->get();
+        [$from, $to] = $this->resolveDateRange($request);
+        $query = $this->filteredQuery($from, $to);
 
-        return view('products.create', compact('categories'));
+        return response()->streamDownload(function () use ($query) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Tanggal', 'Kasir', 'Total']);
+
+            foreach ($query->lazyById() as $t) {
+                fputcsv($out, [$t->id, $t->created_at, $t->user->name, $t->total]);
+            }
+
+            fclose($out);
+        }, 'laporan-penjualan.csv');
     }
 
-    public function store(StoreProductRequest $request)
+    public function exportExcel(Request $request): BinaryFileResponse
     {
-        Product::create($request->validated());
+        [$from, $to] = $this->resolveDateRange($request);
 
-        return redirect()
-            ->route('products.index')
-            ->with('success', 'Produk berhasil ditambahkan.');
+        return Excel::download(
+            new SalesReportExport($this->filteredQuery($from, $to)),
+            'laporan-penjualan.xlsx',
+        );
     }
 
-    public function edit(string $id)
-{
-    $product = Product::findOrFail($id);
+    public function exportPdf(Request $request): Response
+    {
+        [$from, $to] = $this->resolveDateRange($request);
 
-    $categories = Category::orderBy('name')->get();
+        $pdf = Pdf::loadView('reports.pdf', [
+            'totalPenjualan' => $this->filteredQuery($from, $to)->sum('total'),
+            'jumlahTransaksi' => $this->filteredQuery($from, $to)->count(),
+            'transactions' => $this->filteredQuery($from, $to)->latest()->limit(50)->get(),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
 
-    return view('products.edit', compact('product', 'categories'));
+        return $pdf->download('laporan-penjualan.pdf');
+    }
+
+    public function importForm(): View
+    {
+        return view('reports.import');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+
+        $path = $request->file('csv')->store('imports');
+
+        ProcessProductImport::dispatch($path);
+
+        return back()->with('success', 'Import sedang diproses di background.');
+    }
+
+    private function resolveDateRange(Request $request): array
+    {
+        $from = $request->date('from')?->startOfDay() ?? now()->startOfMonth();
+        $to = $request->date('to')?->endOfDay() ?? now()->endOfDay();
+
+        return [$from, $to];
+    }
+
+    private function filteredQuery($from, $to): Builder
+    {
+        return Transaction::with('user')
+            ->whereBetween('created_at', [$from, $to]);
+    }
 }
-
-    public function update(StoreProductRequest $request, string $id)
-    {
-    $product = Product::findOrFail($id);
-
-    $product->update($request->validated());
-
-    return redirect()
-        ->route('products.index')
-        ->with('success', 'Produk berhasil diperbarui.');
-    }   
-}
-
