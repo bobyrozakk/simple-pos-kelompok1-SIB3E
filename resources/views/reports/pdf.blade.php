@@ -14,8 +14,8 @@
 </head>
 <body>
     <h1>Laporan Penjualan</h1>
-    <p>Periode {{ $from }} s.d. {{$to }}</p>
-    <p>Total penjualan: <strong>Rp {{ number_format($totalPenjualan) }}</strong> dari {{$jumlahTransaksi }} transaksi</p>
+    <p>Periode {{ $from }} s.d. {{ $to }}</p>
+    <p>Total penjualan: <strong>Rp {{ number_format($totalPenjualan) }}</strong> dari {{ $jumlahTransaksi }} transaksi</p>
 
     <p>50 transaksi terbaru pada periode ini:</p>
     <table>
@@ -28,7 +28,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($transactions as$t)
+            @foreach ($transactions as $t)
                 <tr>
                     <td>{{ $t->id }}</td>
                     <td>{{ $t->created_at->format('Y-m-d H:i') }}</td>
