@@ -15,6 +15,9 @@
 <body>
     <h1>Laporan Penjualan</h1>
     <p>Periode {{ $from }} s.d. {{ $to }}</p>
+    @if (!empty($selectedCategory))
+        <p>Kategori: <strong>{{ $selectedCategory->name }}</strong></p>
+    @endif
     <p>Total penjualan: <strong>Rp {{ number_format($totalPenjualan) }}</strong> dari {{ $jumlahTransaksi }} transaksi</p>
 
     <p>50 transaksi terbaru pada periode ini:</p>
