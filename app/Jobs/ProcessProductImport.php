@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\ImportError;
 use App\Models\Product;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -16,16 +17,26 @@ class ProcessProductImport implements ShouldQueue
     public array $backoff = [10, 60];
     public int $timeout = 60;
 
-    public function __construct(private string $csvPath) {}
+    public function __construct(private string $csvPath, private string $batchId) {}
 
     public function handle(): void
     {
-        $lines = file(Storage::path($this->csvPath), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $rows = array_map('str_getcsv', $lines);
-        $header = array_shift($rows);
+        ImportError::where('batch_id', $this->batchId)->delete();
 
-        foreach ($rows as $row) {
+        $lines = file(Storage::path($this->csvPath), FILE_IGNORE_NEW_LINES);
+        $header = str_getcsv(array_shift($lines));
+        $errors = [];
+
+        foreach ($lines as $index => $line) {
+            if (trim($line) === '') {
+                continue;
+            }
+
+            $rowNumber = $index + 2;
+            $row = str_getcsv($line);
+
             if (count($row) !== count($header)) {
+                $errors[] = $this->errorRecord($rowNumber, $line, 'Jumlah column tidak sesuai dengan header.');
                 continue;
             }
 
@@ -36,6 +47,7 @@ class ProcessProductImport implements ShouldQueue
             ]);
 
             if ($validator->fails()) {
+                $errors[] = $this->errorRecord($rowNumber, $line, implode(' ', $validator->errors()->all()));
                 continue;
             }
 
@@ -47,6 +59,22 @@ class ProcessProductImport implements ShouldQueue
             );
         }
 
+        foreach (array_chunk($errors, 100) as $chunk) {
+            ImportError::insert($chunk);
+        }
+
         Storage::delete($this->csvPath);
+    }
+
+    private function errorRecord(int $rowNumber, string $line, string $message): array
+    {
+        return [
+            'batch_id' => $this->batchId,
+            'row_number' => $rowNumber,
+            'row_data' => $line,
+            'message' => $message,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
     }
 }
