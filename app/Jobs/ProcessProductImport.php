@@ -24,7 +24,7 @@ class ProcessProductImport implements ShouldQueue
         ImportError::where('batch_id', $this->batchId)->delete();
 
         $lines = file(Storage::path($this->csvPath), FILE_IGNORE_NEW_LINES);
-        $header = str_getcsv(array_shift($lines));
+        $header = str_getcsv(array_shift($lines), ',', '"', '\\');
         $errors = [];
 
         foreach ($lines as $index => $line) {
@@ -33,7 +33,7 @@ class ProcessProductImport implements ShouldQueue
             }
 
             $rowNumber = $index + 2;
-            $row = str_getcsv($line);
+            $row = str_getcsv($line, ',', '"', '\\');
 
             if (count($row) !== count($header)) {
                 $errors[] = $this->errorRecord($rowNumber, $line, 'Jumlah column tidak sesuai dengan header.');
