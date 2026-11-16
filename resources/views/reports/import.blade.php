@@ -22,6 +22,7 @@
     </label>
     <p class="text-xs text-slate-500 mb-3">Column yang dibutuhkan: <code>name</code>, <code>category_id</code>, <code>price</code>.</p>
     <button type="submit" class="bg-slate-900 text-white px-4 py-2 rounded-md text-sm">Import</button>
+    <button type="submit" formaction="{{ route('import.excel.store') }}" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm">Import (Laravel Excel)</button>
 </form>
 
 @if ($importErrors->isNotEmpty())

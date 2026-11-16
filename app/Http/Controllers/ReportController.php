@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\ImportError;
 use App\Jobs\ProcessProductImport;
+use App\Jobs\ProcessProductImportExcel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -109,6 +110,21 @@ class ReportController extends Controller
         session(['import_batch' => $batchId]);
 
         return back()->with('success', 'Import sedang diproses di background.');
+    }
+
+    public function importExcel(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+
+        $path = $request->file('csv')->store('imports');
+        $batchId = (string) Str::uuid();
+
+        ProcessProductImportExcel::dispatch($path, $batchId);
+        session(['import_batch' => $batchId]);
+
+        return back()->with('success', 'Import (Laravel Excel) sedang diproses di background.');
     }
 
     private function resolveDateRange(Request $request): array
