@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SalesReportExport;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\TransactionDetail;
 use App\Models\ImportError;
 use App\Jobs\ProcessProductImport;
 use App\Jobs\ProcessProductImportExcel;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -74,9 +76,30 @@ class ReportController extends Controller
         $query = $this->filteredQuery($from, $to, $categoryId);
         $selectedCategory = $categoryId ? Category::find($categoryId) : null;
 
+        $topProducts = TransactionDetail::query()
+            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_details.product_id', '=', 'products.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->whereBetween('transactions.created_at', [$from, $to])
+            ->when($categoryId, function ($q, $categoryId) {
+                $q->where('products.category_id', $categoryId);
+            })
+            ->select(
+                'products.id',
+                'products.name as product_name',
+                'categories.name as category_name',
+                DB::raw('SUM(transaction_details.qty) as total_sold'),
+                DB::raw('SUM(transaction_details.subtotal) as total_revenue')
+            )
+            ->groupBy('products.id', 'products.name', 'categories.name')
+            ->orderByDesc('total_sold')
+            ->limit(10)
+            ->get();
+
         $pdf = Pdf::loadView('reports.pdf', [
             'totalPenjualan' => (clone $query)->sum('total'),
             'jumlahTransaksi' => (clone $query)->count(),
+            'topProducts' => $topProducts,
             'transactions' => (clone $query)->latest()->limit(50)->get(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),

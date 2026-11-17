@@ -4,12 +4,14 @@
     <meta charset="utf-8">
     <title>Laporan Penjualan</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #333; }
         h1 { font-size: 18px; margin-bottom: 4px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        h2 { font-size: 14px; margin-top: 16px; margin-bottom: 6px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 12px; }
         th, td { border: 1px solid #999; padding: 4px 8px; text-align: left; }
         th { background: #eee; }
         .right { text-align: right; }
+        .center { text-align: center; }
     </style>
 </head>
 <body>
@@ -20,7 +22,35 @@
     @endif
     <p>Total penjualan: <strong>Rp {{ number_format($totalPenjualan) }}</strong> dari {{ $jumlahTransaksi }} transaksi</p>
 
-    <p>50 transaksi terbaru pada periode ini:</p>
+    <h2>Produk Terlaris</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 30px;" class="center">No</th>
+                <th>Nama Produk</th>
+                <th>Kategori</th>
+                <th class="right">Terjual (Qty)</th>
+                <th class="right">Total Penjualan</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($topProducts as $index => $item)
+                <tr>
+                    <td class="center">{{ $index + 1 }}</td>
+                    <td>{{ $item->product_name }}</td>
+                    <td>{{ $item->category_name ?? '-' }}</td>
+                    <td class="right">{{ number_format($item->total_sold) }}</td>
+                    <td class="right">Rp {{ number_format($item->total_revenue) }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="center">Tidak ada data produk terjual pada periode ini.</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <h2>50 Transaksi Terbaru</h2>
     <table>
         <thead>
             <tr>
