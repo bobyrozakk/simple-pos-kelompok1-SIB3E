@@ -138,4 +138,41 @@ Berikut adalah skenario pengujian manual untuk setiap peran pada aplikasi Simple
   1. Menu navigasi menampilkan secara lengkap menu Kasir, Transaksi, Produk, dan Kategori.
   2. Semua halaman (`/pos`, `/transactions`, `/products`, `/categories`) dapat dibuka dan dikelola dengan normal tanpa hambatan.
 
+---
+
+## Identifikasi Proses yang Layak Dipindah ke Queued Job (Increment 9)
+
+### 1. Proses yang Diidentifikasi:
+**Pengecekan Stok Kritis & Notifikasi Peringatan Stok Menipis (*Low Stock Alert Notification*) Pasca-Transaksi**
+
+### 2. Konteks Alur Kerja di Simple POS:
+Pada saat kasir memproses pesanan di halaman Kasir (`/pos`), method `TransactionController@store` menjalankan pengurangan stok barang secara langsung di database:
+```php
+$product->decrement('stock', $item['qty']);
+```
+Setelah stok berkurang, sistem idealnya memeriksa apakah sisa stok produk berada di bawah batas minimum (misalnya stok $\le 5$) dan segera mengirimkan notifikasi peringatan (*alert*) melalui Email, WhatsApp, atau Telegram ke Admin / Manajer Inventaris agar segera melakukan pengadaan kembali (*restock*).
+
+### 3. Alasan Mengapa Wajib / Layak Dipindahkan ke Queued Job:
+
+1. **Menjaga Kecepatan Respons Kasir (*User Experience & Low Latency*):**
+   - Transaksi POS di kasir berlangsung secara tatap muka (*real-time*). Kasir membutuhkan umpan balik transaksi instan (di bawah 200 ms) agar antrean pelanggan tidak menumpuk.
+   - Pengiriman notifikasi melalui jaringan eksternal (seperti koneksi SMTP email, API gateway WhatsApp, atau Telegram Bot) membutuhkan waktu tunggu I/O (*network latency*) sekitar 1 hingga 4 detik per transaksi.
+   - Jika proses notifikasi dijalankan secara sinkron di dalam *request lifecycle* kasir, waktu tunggu checkout akan meningkat drastis dan memperlambat kinerja kasir.
+
+2. **Isolasi Kegagalan (*Failure Resilience & Non-blocking*):**
+   - Jika layanan pihak ketiga (misalnya Mailtrap, SendGrid, atau API Telegram) mengalami gangguan (*down*, *timeout*, atau *rate limit*), proses transaksi penjualan dan cetak struk kasir **tidak boleh gagal**.
+   - Dengan memindahkan proses notifikasi ke antrean (*queued job*), kegagalan pengiriman notifikasi tidak akan membatalkan (*rollback*) transaksi database. Worker queue dapat melakukan percobaan ulang (*retry*) secara otomatis sesuai pengaturan `$tries` dan `$backoff`.
+
+3. **Efisiensi Beban Server pada Jam Sibuk (*Traffic Spike Smoothing*):**
+   - Pada jam-jam sibuk (*peak hours*), puluhan transaksi dapat terjadi dalam hitungan menit. Memindahkan pengiriman notifikasi ke antrean di latar belakang (*background queue*) mencegah lonjakan beban kerja (*spikes*) pada web server utama (PHP-FPM/Nginx/Apache), sehingga web server tetap ringan dan fokus melayani request HTTP pengguna.
+
+### 4. Contoh Rancangan Implementasi:
+* **Nama Job:** `App\Jobs\CheckLowStockAndAlert`
+* **Trigger (Dispatch):** Dijalankan setelah transaksi berhasil disimpan pada `TransactionController@store`:
+  ```php
+  // Dispatch job ke antrean background tanpa menghambat respon kasir
+  CheckLowStockAndAlert::dispatch($validated['items']);
+  ```
+
+
 
