@@ -16,21 +16,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
-        ]);
-        $middleware->validateCsrfTokens(except: [
-            'pos',
+            'idempotent' => \App\Http\Middleware\EnsureIdempotency::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-    fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
-);
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+        );
 
-$exceptions->render(function (NotFoundHttpException $exception, Request $request) {
-    if ($request->is('api/*')) {
-        return response()->json([
-            'message' => 'Resource tidak ditemukan.',
-        ], 404);
-    }
-});
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'Resource tidak ditemukan.'], 404);
+            }
+        });
     })->create();
