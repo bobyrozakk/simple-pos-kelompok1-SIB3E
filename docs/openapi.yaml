@@ -34,14 +34,58 @@ paths:
         '422':
           description: Input login tidak valid
 
-  /api/products:
+    /api/products:
     get:
       summary: Ambil daftar produk
+      description: Mengembalikan daftar produk berpaginasi dengan filter dan pengurutan opsional.
       security:
         - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Nomor halaman yang ingin ditampilkan.
+          schema:
+            type: integer
+            default: 1
+          example: 1
+
+        - name: per_page
+          in: query
+          description: Jumlah produk per halaman, antara 1 dan 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          example: 5
+
+        - name: sort
+          in: query
+          description: Awalan minus mengurutkan dari nilai tertinggi atau dari Z ke A.
+          schema:
+            type: string
+            enum: [name, '-name', price, '-price']
+            default: name
+          example: '-price'
+
+        - name: q
+          in: query
+          description: Kata kunci pencarian nama produk.
+          schema:
+            type: string
+            minLength: 2
+          example: kopi
+
+        - name: category_id
+          in: query
+          description: ID kategori produk yang terdaftar.
+          schema:
+            type: integer
+          example: 1
+
       responses:
         '200':
-          description: Daftar produk
+          description: Daftar produk beserta tautan dan metadata pagination.
           content:
             application/json:
               schema:
@@ -56,8 +100,56 @@ paths:
                         name: { type: string }
                         price: { type: integer }
                         category: { type: string }
+                  links:
+                    type: object
+                    properties:
+                      first: { type: string, format: uri }
+                      last: { type: string, format: uri }
+                      prev: { type: string, format: uri, nullable: true }
+                      next: { type: string, format: uri, nullable: true }
+                  meta:
+                    type: object
+                    properties:
+                      current_page: { type: integer, example: 1 }
+                      from: { type: integer, nullable: true, example: 1 }
+                      last_page: { type: integer, example: 62 }
+                      links:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url: { type: string, format: uri, nullable: true }
+                            label: { type: string }
+                            page: { type: integer, nullable: true }
+                            active: { type: boolean }
+                      path: { type: string, format: uri }
+                      per_page: { type: integer, example: 5 }
+                      to: { type: integer, nullable: true, example: 5 }
+                      total: { type: integer, example: 306 }
         '401':
-          description: Token tidak ada atau tidak valid
+          description: Token tidak ada, tidak valid, atau sudah kedaluwarsa.
+        '403':
+          description: Token tidak memiliki ability products:read.
+        '422':
+          description: Query parameter tidak valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items: { type: string }
+              example:
+                message: The per page field must not be greater than 100.
+                errors:
+                  per_page:
+                    - The per page field must not be greater than 100.
+        '429':
+          description: Batas request terlampaui.
 
   /api/transactions:
     post:
