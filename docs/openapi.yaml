@@ -7,7 +7,7 @@ servers:
   - url: http://127.0.0.1:8000
 
 paths:
-  /api/login:
+  /api/v1/login:
     post:
       summary: Login dan dapatkan token
       requestBody:
@@ -34,7 +34,7 @@ paths:
         '422':
           description: Input login tidak valid
 
-    /api/products:
+  /api/v1/products:
     get:
       summary: Ambil daftar produk
       description: Mengembalikan daftar produk berpaginasi dengan filter dan pengurutan opsional.
@@ -151,7 +151,7 @@ paths:
         '429':
           description: Batas request terlampaui.
 
-  /api/transactions:
+  /api/v1/transactions:
     post:
       summary: Buat transaksi baru
       security:
